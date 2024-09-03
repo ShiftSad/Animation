@@ -56,23 +56,21 @@ data class Vehicle(
 
         val pathLocations = mutableListOf<Location>()
         val step = end.toVector()
-            .subtract(position.toVector())
+            .subtract(position.clone().toVector())
             .divide(Vector(duration, duration, duration))
             .toLocation(position.world)
             .apply {
-                yaw = (end.yaw - position.yaw) / duration
-                pitch = (end.pitch - position.pitch) / duration
+                yaw = (end.yaw - position.clone().yaw) / duration
+                pitch = (end.pitch - position.clone().pitch) / duration
             }
 
         // Pre calculate path
-        pathLocations.add(step)
-        repeat(duration) {
-            val prevLocation = pathLocations[it]
-            val nextLocation = prevLocation.add(step).apply {
-                yaw += step.yaw
-                pitch += step.pitch
-            }
-            pathLocations.add(nextLocation)
+        repeat(duration + 1) {
+            val fraction = it / duration.toDouble()
+            val intermediateLocation = position.clone().add(
+                end.toVector().subtract(position.clone().toVector()).multiply(fraction)
+            )
+            pathLocations.add(intermediateLocation)
         }
 
         repeat(duration) {
@@ -83,6 +81,7 @@ data class Vehicle(
 
     fun move(location: Location) {
         this.position = location
+        println(location)
         blocks.forEach { block ->
             block.blockDisplay?.teleport(location.offseted(block.offset.x, block.offset.y, block.offset.z))
         }

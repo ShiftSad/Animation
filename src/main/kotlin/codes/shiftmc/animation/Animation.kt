@@ -6,6 +6,7 @@ import codes.shiftmc.animation.data.Vehicle
 import codes.shiftmc.animation.path.Node
 import codes.shiftmc.animation.path.PathCreator
 import codes.shiftmc.animation.path.PathManager
+import com.github.shynixn.mccoroutine.bukkit.launch
 import com.sk89q.worldedit.WorldEdit
 import com.sk89q.worldedit.bukkit.BukkitAdapter
 import dev.jorel.commandapi.CommandAPICommand
@@ -93,7 +94,9 @@ class Animation : JavaPlugin() {
                 }
 
                 vehicle?.move(node.location().apply { y += 1.5 })
-                moveVehicle(node, vehicle!!)
+                launch {
+                    moveVehicle(node, vehicle!!)
+                }
             })
             .register(this)
 
@@ -102,17 +105,15 @@ class Animation : JavaPlugin() {
 //        }
     }
 
-    private fun moveVehicle(currentNode: Node, vehicle: Vehicle) {
+    private suspend fun moveVehicle(currentNode: Node, vehicle: Vehicle) {
         val nextNode = currentNode.connect ?: return
 
         val distance = currentNode.location().distance(nextNode.location())
-        val speed = 30.0 // Speed in km/h
-        val interval = (distance / speed) * 20 // Convert to milliseconds
+        val speed = 10.0 // Speed in km/h
+        val interval = ((72000 * (distance / 1000)) / speed).toInt() + 1 // Convert to milliseconds
 
-        Bukkit.getScheduler().runTaskLater(this, Runnable {
-            vehicle.move(nextNode.location().apply { y += 1.5 }, interval.toInt())
-            moveVehicle(nextNode, vehicle)
-        }, interval.toLong())
+        vehicle.move(nextNode.location().apply { y += 1.5 }, interval)
+        moveVehicle(nextNode, vehicle)
     }
 
 }
