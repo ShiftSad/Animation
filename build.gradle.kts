@@ -30,6 +30,10 @@ dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.1-R0.1-SNAPSHOT")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 
+    implementation("com.github.shynixn.mccoroutine:mccoroutine-bukkit-api:2.15.0")
+    implementation("com.github.shynixn.mccoroutine:mccoroutine-bukkit-core:2.15.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")
+
     compileOnly("dev.jorel:commandapi-bukkit-core:9.5.2")
     compileOnly("com.comphenix.protocol:ProtocolLib:5.3.0-SNAPSHOT")
     compileOnly("com.sk89q.worldedit:worldedit-bukkit:7.4.0-SNAPSHOT")

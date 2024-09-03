@@ -1,5 +1,7 @@
 package codes.shiftmc.animation.data
 
+import com.github.shynixn.mccoroutine.bukkit.ticks
+import kotlinx.coroutines.delay
 import org.bukkit.Color
 import org.bukkit.Location
 import org.bukkit.Material
@@ -7,7 +9,9 @@ import org.bukkit.Particle
 import org.bukkit.entity.BlockDisplay
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.util.Transformation
+import org.bukkit.util.Vector
 import org.joml.AxisAngle4f
+import org.joml.Vector3d
 import org.joml.Vector3f
 import kotlin.math.cos
 import kotlin.math.sin
@@ -47,8 +51,41 @@ data class Vehicle(
 
     private var movementTask = -1
 
-    fun move(position: Location, duration: Int = 0) {
-        // TODO -> Move
+    suspend fun move(end: Location, duration: Int) {
+        assert(duration > 0) { "Duration must be greater than 0" }
+
+        val pathLocations = mutableListOf<Location>()
+        val step = end.toVector()
+            .subtract(position.toVector())
+            .divide(Vector(duration, duration, duration))
+            .toLocation(position.world)
+            .apply {
+                yaw = (end.yaw - position.yaw) / duration
+                pitch = (end.pitch - position.pitch) / duration
+            }
+
+        // Pre calculate path
+        pathLocations.add(step)
+        repeat(duration) {
+            val prevLocation = pathLocations[it]
+            val nextLocation = prevLocation.add(step).apply {
+                yaw += step.yaw
+                pitch += step.pitch
+            }
+            pathLocations.add(nextLocation)
+        }
+
+        repeat(duration) {
+            move(pathLocations[it])
+            delay(1.ticks)
+        }
+    }
+
+    fun move(location: Location) {
+        this.position = location
+        blocks.forEach { block ->
+            block.blockDisplay?.teleport(location.offseted(block.offset.x, block.offset.y, block.offset.z))
+        }
     }
 
     fun rotate(yaw: Float, pitch: Float = 0f) {
