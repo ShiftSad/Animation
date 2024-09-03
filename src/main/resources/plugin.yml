@@ -1,0 +1,4 @@
+name: Animation
+version: '1.0-SNAPSHOT'
+main: codes.shiftmc.animation.Animation
+api-version: '1.21'
