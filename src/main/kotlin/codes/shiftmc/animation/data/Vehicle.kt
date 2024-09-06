@@ -2,19 +2,17 @@ package codes.shiftmc.animation.data
 
 import com.github.shynixn.mccoroutine.bukkit.ticks
 import kotlinx.coroutines.delay
-import org.bukkit.Color
 import org.bukkit.Location
 import org.bukkit.Material
-import org.bukkit.Particle
 import org.bukkit.entity.BlockDisplay
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.util.Transformation
-import org.bukkit.util.Vector
 import org.joml.AxisAngle4f
-import org.joml.Vector3d
 import org.joml.Vector3f
+import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
+import kotlin.time.Duration.Companion.seconds
 
 data class Vehicle(
     val blocks: List<SmallBlock>,
@@ -49,22 +47,31 @@ data class Vehicle(
         }
     }
 
-    private var movementTask = -1
-
     suspend fun move(end: Location, duration: Int) {
         assert(duration > 0) { "Duration must be greater than 0" }
 
-        val pathLocations = mutableListOf<Location>()
-        val step = end.toVector()
-            .subtract(position.clone().toVector())
-            .divide(Vector(duration, duration, duration))
-            .toLocation(position.world)
-            .apply {
-                yaw = (end.yaw - position.clone().yaw) / duration
-                pitch = (end.pitch - position.clone().pitch) / duration
-            }
+        val differenceVector = end.toVector().subtract(position.toVector())
 
-        // Pre calculate path
+        // Check if the difference vector is non-zero
+        if (differenceVector.lengthSquared() == 0.0) {
+            println("Skipping rotation due to zero-length difference vector")
+            return
+        }
+
+        val directionVector = differenceVector.normalize()
+
+        // Ensure the direction vector is finite
+        if (directionVector.x.isFinite() && directionVector.z.isFinite()) {
+            val yaw = Math.toDegrees(atan2(directionVector.z, directionVector.x)).toFloat() - 90 // Adjust for Minecraft's coordinate system
+            println("Yaw: $yaw")
+            rotate(yaw)
+        } else {
+            println("Direction vector components are not finite: x=${directionVector.x}, z=${directionVector.z}")
+        }
+
+        val pathLocations = mutableListOf<Location>()
+
+        // Pre-calculate path
         repeat(duration + 1) {
             val fraction = it / duration.toDouble()
             val intermediateLocation = position.clone().add(
@@ -80,14 +87,25 @@ data class Vehicle(
     }
 
     fun move(location: Location) {
+        // Keep the current yaw and pitch
+        location.yaw = this.position.yaw
+        location.pitch = this.position.pitch
+
+        // Update the position of the vehicle
         this.position = location
-        println(location)
+
+        // Move each block to the new location with the same rotation
         blocks.forEach { block ->
             block.blockDisplay?.teleport(location.offseted(block.offset.x, block.offset.y, block.offset.z))
         }
+
+        rotate(yaw)
     }
 
+    var yaw = 0f
+
     fun rotate(yaw: Float, pitch: Float = 0f) {
+        this.yaw = yaw;
         val radiansYaw = Math.toRadians(yaw.toDouble())
         val cosYaw = cos(radiansYaw)
         val sinYaw = sin(radiansYaw)

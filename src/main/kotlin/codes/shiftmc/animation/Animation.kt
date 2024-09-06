@@ -10,7 +10,9 @@ import com.github.shynixn.mccoroutine.bukkit.launch
 import com.sk89q.worldedit.WorldEdit
 import com.sk89q.worldedit.bukkit.BukkitAdapter
 import dev.jorel.commandapi.CommandAPICommand
+import dev.jorel.commandapi.arguments.DoubleArgument
 import dev.jorel.commandapi.arguments.FloatArgument
+import dev.jorel.commandapi.arguments.IntegerArgument
 import dev.jorel.commandapi.arguments.TextArgument
 import dev.jorel.commandapi.executors.PlayerCommandExecutor
 import org.bukkit.Bukkit
@@ -81,8 +83,10 @@ class Animation : JavaPlugin() {
 
         CommandAPICommand("move")
             .withOptionalArguments(TextArgument("node"))
+            .withOptionalArguments(DoubleArgument("speed"))
             .executesPlayer(PlayerCommandExecutor { player, args ->
                 val nodeArg = args.getOrDefault("node", "here") as String
+                val speed = args.getOrDefault("speed", 10.0) as Double
                 if (nodeArg == "here") {
                     vehicle?.move(player.location)
                     return@PlayerCommandExecutor
@@ -95,7 +99,7 @@ class Animation : JavaPlugin() {
 
                 vehicle?.move(node.location().apply { y += 1.5 })
                 launch {
-                    moveVehicle(node, vehicle!!)
+                    moveVehicle(node, vehicle!!, speed)
                 }
             })
             .register(this)
@@ -105,11 +109,10 @@ class Animation : JavaPlugin() {
 //        }
     }
 
-    private suspend fun moveVehicle(currentNode: Node, vehicle: Vehicle) {
+    private suspend fun moveVehicle(currentNode: Node, vehicle: Vehicle, speed: Double = 10.0) {
         val nextNode = currentNode.connect ?: return
 
         val distance = currentNode.location().distance(nextNode.location())
-        val speed = 10.0 // Speed in km/h
         val interval = ((72000 * (distance / 1000)) / speed).toInt() + 1 // Convert to milliseconds
 
         vehicle.move(nextNode.location().apply { y += 1.5 }, interval)
